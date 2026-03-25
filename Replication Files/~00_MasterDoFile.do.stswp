@@ -1,0 +1,85 @@
+********************************************************************************
+* Replication Code: 
+* Fiscal consolidation and political instability
+* Philipp Heimberger & Anna Matzner
+* March 2026
+* Stata v19
+********************************************************************************
+
+* Settings
+clear 
+
+*******************************************************************************
+********* INSERT PATH HERE: location of 00_MasterDoFile ***********************
+*******************************************************************************
+global PATH "/Users/philippheimberger/Desktop/DZ-Projekt/Political effects of fiscal consolidation/Replication Files"
+global PATH "/Users/philippheimberger/Desktop/Project ideas/Political economy of fiscal consolidation/R application/poleconfisc/Stata code/Political effects 3"
+
+cd "$PATH"
+global FIGUREDIR "$PATH/figures"
+global FIGURECOM "$PATH/figures_combined"
+global DATA      "$PATH/data"
+global TABLEDIR  "$PATH/tables"
+
+* packages (install if needed)
+// ssc install ivreg2
+// ssc install grstyle
+// ssc install xtscc
+// ssc install ranktest
+
+* graphstyle
+grstyle clear
+grstyle init
+grstyle set grid
+grstyle set linewidth 0.3pt: major_grid 
+grstyle set margin 0.01cm: twoway 
+global grfont "P052"
+graph set window fontface $grfont // latex font
+global mblue "0 114 189"
+global mred "217 83 25"
+global morange "237 177 32"
+global mdred "162 20 47"
+global mpurple "126 47 142"
+global mgreen "119 172 48"
+
+// Data 
+use "$DATA/Data_PoliticalStability_Consolidation.dta", clear
+
+encode ccode, gen(country_id)
+sort country_id year
+xtset country_id year, yearly
+
+* Introducy binary variables (rescaled for percentage point interpretation)
+gen GOVCRISIS_binary = 0
+replace GOVCRISIS_binary = 100 if GOVCRISIS > 0
+gen STRIKE_binary = 0
+replace STRIKE_binary = 100 if STRIKE > 0
+gen DEMONSTR_binary = 0
+replace DEMONSTR_binary = 100 if DEMONSTR > 0
+
+// Figure 1
+do "$PATH\01_PoliticalEffects_Headline.do"
+
+// Figure 2
+do "$PATH\02_PoliticalEffects_EconChannel.do"
+
+// Figure 3 (and robustness Figure D.8)
+do "$PATH\03_PoliticalEffects_StateDependency.do"
+
+// Figure 4
+do "$PATH\04_PoliticalEffects_SpendingShare.do"
+
+// Figure 5
+do "$PATH\05_PoliticalEffects_SpendingShare_StateDependency.do"
+
+// Figure C.1
+do "$PATH\06_MacroEffects.do"
+
+// Figure D.1 (Robustness AIPW)
+do "$PATH\07_Robustness_AIPW.do"
+
+// Figure D.2 - D.7 (Robustness)
+do "$PATH\08_Robustness"
+
+// Table D.1 (Robustness LPM)
+do "$PATH\09_Robustness_LPM"
