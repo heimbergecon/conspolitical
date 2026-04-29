@@ -1,0 +1,151 @@
+********************************************************************************
+* Replication Code: 
+* Fiscal consolidation and political instability
+* Philipp Heimberger & Anna Matzner
+* March 2026
+* Stata v19
+********************************************************************************
+
+* Settings
+clear 
+
+*******************************************************************************
+********* INSERT PATH HERE: location of 00_MasterDoFile ***********************
+*******************************************************************************
+global PATH "C:\Users\matzner\OneDrive - Wiener Institut für internationale Wirtschaftsvergleiche\Attachments\Desktop\Replication Files"
+
+cd "$PATH"
+global FIGUREDIR "$PATH/figures"
+global FIGURECOM "$PATH/figures_combined"
+global DATA      "$PATH/data"
+global TABLEDIR  "$PATH/tables"
+
+* packages (install if needed)
+// ssc install ivreg2
+// ssc install grstyle
+// ssc install xtscc
+// ssc install ranktest
+
+* graphstyle
+grstyle clear
+grstyle init
+grstyle set grid
+grstyle set linewidth 0.3pt: major_grid 
+grstyle set margin 0.01cm: twoway 
+global grfont "P052"
+graph set window fontface $grfont // latex font
+global mblue "0 114 189"
+global mred "217 83 25"
+global morange "237 177 32"
+global mdred "162 20 47"
+global mpurple "126 47 142"
+global mgreen "119 172 48"
+
+// Data 
+use "$DATA/Data_PoliticalStability_Consolidation.dta", clear
+
+encode ccode, gen(country_id)
+sort country_id year
+xtset country_id year, yearly
+
+// Figure A.1
+/*
+histogram GOVCRISIS, ///
+    discrete ///                 // treat as discrete variable
+    frequency ///                // show counts instead of density
+    color(midblue%60) ///
+    lcolor(midblue) ///
+    lwidth(thin) ///
+    title("", size(medium) color(black)) ///
+    xtitle("Government crises in a given year", size(7)) ///
+    ytitle("Occurances", size(7)) ///
+    ylabel(, labsize(7) grid glcolor(gs15)) ///
+	xlabel(, labsize(7)) ///        
+    graphregion(color(white)) ///
+    plotregion(color(white)) ///
+    xsize(4) ysize(3) ///
+	saving("$FIGUREDIR\histo_govcrisis.gph", replace)
+
+histogram STRIKE, ///
+    discrete ///                 // treat as discrete variable
+    frequency ///                // show counts instead of density
+    color(midblue%60) ///
+    lcolor(midblue) ///
+    lwidth(thin) ///
+    title("", size(medium) color(black)) ///
+    xtitle("Strikes in a given year", size(7)) ///
+    ytitle("Occurances", size(7)) ///
+    ylabel(, labsize(7) grid glcolor(gs15)) ///
+	xlabel(, labsize(7)) ///        
+    graphregion(color(white)) ///
+    plotregion(color(white)) ///
+    xsize(4) ysize(3) ///
+	saving("$FIGUREDIR\histo_strike.gph", replace)
+	
+histogram DEMONSTR if DEMONSTR < 3453, ///
+    discrete ///                 // treat as discrete variable
+    frequency ///                // show counts instead of density
+    color(midblue%60) ///
+    lcolor(midblue) ///
+    lwidth(thin) ///
+    title("", size(medium) color(black)) ///
+    xtitle("Demonstrations in a given year", size(7)) ///
+    ytitle("Occurances", size(7)) ///
+    ylabel(, labsize(7) grid glcolor(gs15)) ///
+	xlabel(, labsize(7)) ///        
+    graphregion(color(white)) ///
+    plotregion(color(white)) ///
+    xsize(4) ysize(3) ///
+	saving("$FIGUREDIR\histo_demonstr.gph", replace)
+	
+graph use "$FIGUREDIR\histo_govcrisis.gph",          name(g1, replace)
+graph use "$FIGUREDIR\histo_strike.gph",         name(g2, replace)
+graph use "$FIGUREDIR\histo_demonstr.gph",    name(g3, replace)
+set scheme s1color
+grc1leg2 g1 g2 g3, cols(3) ///
+    loff ///
+	ysize(3) xsize(12) 
+graph export "$FIGURECOM\histogram_combined.jpg", replace
+*/
+
+* Introducy binary variables (rescaled for percentage point interpretation)
+gen GOVCRISIS_binary = 0
+replace GOVCRISIS_binary = 100 if GOVCRISIS > 0
+gen STRIKE_binary = 0
+replace STRIKE_binary = 100 if STRIKE > 0
+gen DEMONSTR_binary = 0
+replace DEMONSTR_binary = 100 if DEMONSTR > 0
+
+// Figure 2
+do "$PATH\01_PoliticalEffects_Headline.do"
+
+// Figure 3
+do "$PATH\02_PoliticalEffects_EconChannel.do"
+
+// Figure 4 (and robustness Figure D.8)
+do "$PATH\03_PoliticalEffects_StateDependency.do"
+
+// Figure 5
+do "$PATH\04_PoliticalEffects_SpendingShare.do"
+
+// Figure 6
+do "$PATH\05_PoliticalEffects_SpendingShare_StateDependency.do"
+
+// Figure C.1
+do "$PATH\06_MacroEffects.do"
+
+// Figure D.1 / Figure D.2 / Figure D.5 - D.7 (Robustness)
+do "$PATH\07_Robustness"
+
+// Figure D.3 / Figure D.4
+do "$PATH\08_Robustness_EDP"
+
+// Table D.1 (Robustness LPM)
+do "$PATH\09_Robustness_LPM"
+
+
+
+// Table A.1
+keep TOTAL diff_STRUCBAL approval GOVCRISIS_binary STRIKE_binary DEMONSTR_binary OGAP RGROWTH RYIELD unemp REER
+keep if !missing(diff_STRUCBAL)
+asdoc sum, stat(mean sd min max) dec(2) format(%9.3f)  save($TABLEDIR/descriptivestats_PoliticalInstability_Consolidation.doc) replace
